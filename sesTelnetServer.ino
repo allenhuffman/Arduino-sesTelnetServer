@@ -22,10 +22,12 @@ __asm volatile ("nop");
  2013-04-12 0.00 allenh - First posted to www.subethasoftware.com.
  2014-03-03 1.00 allenh - Posted to GitHub.
  2015-02-14 1.01 allenh - Adding some "const" to make it build with 1.6.0.
+ 2020-10-10 1.02 allenh - Removed compiler warnings, fix bug where readCmdLine()
+                          could write past the passed-in buffer.
  
  CHECK BACK FOR UPDATES! Much more still to be done...
  -----------------------------------------------------------------------------*/
-#define VERSION "1.01"
+#define VERSION "1.02"
 
 /*---------------------------------------------------------------------------*/
 // Telnet protocol stuff.
@@ -58,26 +60,26 @@ byte telnetInput(EthernetClient client, char *cmdLine, byte len);
 #define DEL   0x7f // Delete key for some terminals.
 
 // Commands - IAC,<type of operation>,<option>
-#define EOF   236 // End of file?
-#define SP    237 // Suspend process?
-#define ABORT 238 // Abort process?
-#define EOR   239 // End of record?
-#define SE    240 // End of subnegotiation parameters
-#define NOP   241 // No operation
-#define DM    242 // Data mark
-#define BRK   243 // Break
-#define IP    244 // Suspend
-#define AO    245 // Abort output
-#define AYT   246 // Are you there?
-#define EC    247 // Erase character
-#define EL    248 // Erase line
-#define GA    249 // Go ahead
-#define SB    250 // Subnegotiation of the indicated option follows
-#define WILL  251 // Indicates the desire to being performing
-#define WONT  252 // Indicates the refusal to perform
-#define DO    253 // Indicates the request that the other party performs
-#define DONT  254 // Indicates the demand that the other party stop performing
-#define IAC   255 // Interpet as command
+#define T_EOF   236 // End of file?
+#define T_SP    237 // Suspend process?
+#define T_ABORT 238 // Abort process?
+#define T_EOR   239 // End of record?
+#define T_SE    240 // End of subnegotiation parameters
+#define T_NOP   241 // No operation
+#define T_DM    242 // Data mark
+#define T_BRK   243 // Break
+#define T_IP    244 // Suspend
+#define T_AO    245 // Abort output
+#define T_AYT   246 // Are you there?
+#define T_EC    247 // Erase character
+#define T_EL    248 // Erase line
+#define T_GA    249 // Go ahead
+#define T_SB    250 // Subnegotiation of the indicated option follows
+#define T_WILL  251 // Indicates the desire to being performing
+#define T_WONT  252 // Indicates the refusal to perform
+#define T_DO    253 // Indicates the request that the other party performs
+#define T_DONT  254 // Indicates the demand that the other party stop performing
+#define T_IAC   255 // Interpet as command
 
 // Telnet Options
 // http://www.iana.org/assignments/telnet-options/telnet-options.xml
@@ -561,10 +563,10 @@ byte telnetRead(EthernetClient client)
     {
       // Normal mode. Look for commands.
     case MODE_LOOKING_FOR_CMD:
-      if (ch==IAC)
+      if (ch==T_IAC)
       {
 #if defined(TELNET_DEBUG)
-        telnetPrintCmd(IAC);
+        telnetPrintCmd(T_IAC);
 #endif
         mode = MODE_LOOKING_FOR_TYPE;
       }
@@ -579,7 +581,7 @@ byte telnetRead(EthernetClient client)
       // IAC,<type of operation>,<option>
       // Looking for command type.
     case MODE_LOOKING_FOR_TYPE:
-      if (ch==IAC)
+      if (ch==T_IAC)
       {
         // Two in a row is escaped, per PFudd on RFC comments.
         // http://www.faqs.org/rfcs/rfc854.html
@@ -595,52 +597,52 @@ byte telnetRead(EthernetClient client)
 #endif
       switch(ch)
       {
-      case SE: // Subnegotiation ends.
+      case T_SE: // Subnegotiation ends.
         mode = MODE_DONE;
         break;
 
-      case SB: // Subnegotiation follows.
+      case T_SB: // Subnegotiation follows.
         mode = MODE_LOOKING_FOR_SB_OPT;
         break;
 
-      case DO:
+      case T_DO:
         mode = MODE_LOOKING_FOR_DO_OPT;
         break;
 
-      case DONT:
+      case T_DONT:
         mode = MODE_LOOKING_FOR_DONT_OPT;
         break;
 
-      case WILL:
+      case T_WILL:
         mode = MODE_LOOKING_FOR_WILL_OPT;
         break;
 
-      case WONT:
+      case T_WONT:
         mode = MODE_LOOKING_FOR_WONT_OPT;
         break;
 
-      case AYT:
+      case T_AYT:
         mode = MODE_DONE;
         client.println(FLASHSTR(telnetAYT));
         break;
 
         // Commands with no options.
-      case EC:
+      case T_EC:
         ch = BS;
         mode = MODE_LOOKING_FOR_CMD;
         break;
 
-      case EOF:
-      case SP:
-      case ABORT:
-      case EOR:
-      case NOP:
-      case DM:
-      case BRK:
-      case IP:
-      case AO:
-      case EL:
-      case GA:
+      case T_EOF:
+      case T_SP:
+      case T_ABORT:
+      case T_EOR:
+      case T_NOP:
+      case T_DM:
+      case T_BRK:
+      case T_IP:
+      case T_AO:
+      case T_EL:
+      case T_GA:
         mode = MODE_LOOKING_FOR_CMD;
         break;
 
@@ -710,10 +712,10 @@ byte telnetRead(EthernetClient client)
 
       // Subnegotiation stream in progress.
     case MODE_LOOKING_FOR_SE:
-      if (ch==IAC)
+      if (ch==T_IAC)
       {
 #if defined(TELNET_DEBUG)
-        telnetPrintCmd(IAC);
+        telnetPrintCmd(T_IAC);
 #endif
         mode = MODE_LOOKING_FOR_TYPE;
       }
@@ -758,10 +760,10 @@ byte telnetRead(EthernetClient client)
 
 void telnetSendEsc()
 {
-  client.write(IAC);
+  client.write(T_IAC);
 #if defined(TELNET_DEBUG)
   Serial.print(F(">"));
-  telnetPrintCmd(IAC);
+  telnetPrintCmd(T_IAC);
 #endif
 }
 void telnetSendEscCmd(byte cmd)
@@ -782,14 +784,14 @@ void telnetSendEscCmd(byte cmd, byte option)
 }
 void telnetSendSb(byte option, byte val)
 {
-  telnetSendEscCmd(SB, option);
+  telnetSendEscCmd(T_SB, option);
   client.write(val);
-  client.write(IAC);
-  client.write(SE);
+  client.write(T_IAC);
+  client.write(T_SE);
 #if defined(TELNET_DEBUG)
   telnetPrintHex(val);
-  telnetPrintCmd(IAC);
-  telnetPrintCmd(SE);
+  telnetPrintCmd(T_IAC);
+  telnetPrintCmd(T_SE);
 #endif
 }
 
@@ -801,10 +803,10 @@ boolean telnetHandleWill(byte opt)
 {
   if (telnetHandleOptEnable(opt)==true)
   {
-    telnetSendEscCmd(DO, opt);
+    telnetSendEscCmd(T_DO, opt);
     return true;
   }
-  telnetSendEscCmd(DONT, opt);
+  telnetSendEscCmd(T_DONT, opt);
   return false;
 }
 
@@ -812,10 +814,10 @@ boolean telnetHandleDo(byte opt)
 {
   if (telnetHandleOptEnable(opt)==true)
   {
-    telnetSendEscCmd(WILL, opt);
+    telnetSendEscCmd(T_WILL, opt);
     return true;
   }
-  telnetSendEscCmd(WONT, opt);
+  telnetSendEscCmd(T_WONT, opt);
   return false;
 }
 
@@ -824,7 +826,7 @@ boolean telnetHandleDont(byte opt)
   if (telnetHandleOptDisable(opt)==true)
   {
     // Tell them we WONT use it.
-    telnetSendEscCmd(WONT, opt);
+    telnetSendEscCmd(T_WONT, opt);
     return true;
   }
   // If we can't not do the option, what should we do? Ignore for now.
@@ -836,7 +838,7 @@ boolean telnetHandleWont(byte opt)
   if (telnetHandleOptDisable(opt)==true)
   {
     // Tell them we DONT use it.
-    telnetSendEscCmd(DONT, opt);
+    telnetSendEscCmd(T_DONT, opt);
     return true;
   }
   // If we can't not do the option, what should we do? Ignore for now.
@@ -950,7 +952,7 @@ byte telnetInput(EthernetClient client, char *cmdLine, byte len)
   if (!offlineMode)
   {
     // Do we need to let them know they can send us stuff?
-    if (client.connected() && !telnetMode(MODE_SUPGA)) telnetSendEscCmd(GA);
+    if (client.connected() && !telnetMode(MODE_SUPGA)) telnetSendEscCmd(T_GA);
   }
 
   done = false;
@@ -1103,9 +1105,9 @@ byte telnetInput(EthernetClient client, char *cmdLine, byte len)
 void telnetPrintCmd(byte type)
 {
   Serial.print(F("["));
-  if (type>=SE && type<=IAC)
+  if (type>=T_SE) //&& type<=T_IAC)
   {
-    Serial.print(FLASHPTR(telnetCmd[type-SE]));
+    Serial.print(FLASHPTR(telnetCmd[type-T_SE]));
   }
   else
   {
@@ -1116,12 +1118,11 @@ void telnetPrintCmd(byte type)
 
 void telnetPrintOpt(byte opt)
 {
-  int i;
   boolean found;
 
   found = false;
   Serial.print(F("["));
-  for (i=0; i<(sizeof(telnetOpt)/sizeof(*telnetOpt)); i++)
+  for (unsigned int i=0; i<(sizeof(telnetOpt)/sizeof(*telnetOpt)); i++)
   {
     if (pgm_read_byte(&telnetOpt[i].code) == opt)
     {

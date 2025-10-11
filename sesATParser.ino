@@ -53,7 +53,7 @@ void cmdMode()
 
   while(1)
   {
-    len = readCmdLine(cmdLine, CMDLINE_SIZE);
+    len = readCmdLine(cmdLine, sizeof(cmdLine));
     if (len>0)
     {
       Serial.print(">");
@@ -106,7 +106,7 @@ byte readCmdLine(char *cmdLine, size_t len)
 
       default:
         // If there is room, store any printable characters in the cmdline.
-        if (cmdLen<CMDLINE_SIZE)
+        if (cmdLen<len)
         {
           if ((ch>31) && (ch<127)) // isprint(ch) does not work.
           {
