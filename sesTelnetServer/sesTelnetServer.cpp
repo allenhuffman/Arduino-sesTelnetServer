@@ -1,6 +1,26 @@
 #if 1
 __asm volatile ("nop");
 #endif
+/**
+ * @file template.c
+ *
+ * @author Allen C. Huffman
+ * @copyright Copyright (c) 2026 Sub-Etha Software
+ * @note Origin: https://github.com/allenhuffman
+ * @note This file follows the Barr-C Embedded C Coding Standard.
+ *
+ * @brief Implementation of the module.
+ *
+ * @details This module is implemented according to the Barr Group
+ * Embedded C Coding Standard (Barr-C).
+ *
+ * @section history File History
+ * - 2026-XX-XX allenh - Created.
+ *
+ * @todo Add module-specific functionality.
+ * @todo Document any API-specific edge cases.
+ */
+
 /*-----------------------------------------------------------------------------
  
  Sub-Etha Software's Arduino Telnet Server
@@ -33,24 +53,40 @@ __asm volatile ("nop");
 // Telnet protocol stuff.
 // Reference: http://www.softpanorama.net/Net/Application_layer/telnet.shtml
 
-#include <avr/pgmspace.h>
-#include <SPI.h>
-#include <Ethernet.h>
+/* System headers */
 
+/* This module's header (must be first among project headers) */
 #include "sesTelnetServer.h"
 #include "sesTelnetServerConfig.h"
 
+/* External module headers */
+#include <avr/pgmspace.h>
+#include <Ethernet.h>
+#include <SPI.h>
 #include "sesATParser.h"
 
-/*---------------------------------------------------------------------------*/
-// PROTOTYPES
-/*---------------------------------------------------------------------------*/
-uint8_t telnetRead(EthernetClient client);
-uint8_t telnetInput(EthernetClient client, char *cmdLine, uint8_t len);
+/* Public data definitions */
 
-/*---------------------------------------------------------------------------*/
-// DEFINES
-/*---------------------------------------------------------------------------*/
+EthernetServer telnetServer = EthernetServer(23); // Server on this port.
+#if defined(TELNET_MULTISERVER)
+EthernetServer goawayServer = EthernetServer(23); // Additional listener.
+#endif
+EthernetClient  client;                   // Client connection.
+bool            telnetConnected = false;
+bool            offlineMode = false;
+uint8_t         modeFlags = 0;            // Global option bit flags.
+
+/* Private macros: all #define items, constants and function-like macros */
+
+//#define SEND_TELNET_SB
+
+//#define telnetModeEnable(x)  (modeFlags = modeFlags | x)
+//#define telnetModeDisable (x) (modeFlags = modeFlags & ~x)
+#define telnetMode(x)        (modeFlags & x)
+
+#define MODE_SUPGA    bit(0)
+#define MODE_ECHO     bit(1)
+#define MODE_LINEMODE bit(2)
 
 #define NUL   0  // NULL
 #define BEL   7  // Bell
@@ -140,42 +176,13 @@ uint8_t telnetInput(EthernetClient client, char *cmdLine, uint8_t len);
 // 50-137 Unassigned
 #define OPT_EXOPL      255// EXTENDED-OPTIONS-LIST (EXOPL) extended opt list
 
-/*---------------------------------------------------------------------------*/
-// GLOBALS
-/*---------------------------------------------------------------------------*/
+/* Private constants: typed, debugger-visible constants (prefer static const) */
 
-// Some globals the Ethernet stuff needs.
-EthernetServer telnetServer = EthernetServer(23); // Server on this port.
-#if defined(TELNET_MULTISERVER)
-EthernetServer goawayServer = EthernetServer(23); // Additional listener.
-#endif
-EthernetClient client;                            // Client connection.
-bool        telnetConnected = false;
-bool        offlineMode = false;
-uint8_t        modeFlags = 0;                     // Global option bit flats.
-
-//#define telnetModeEnable(x)  (modeFlags = modeFlags | x)
-//#define telnetModeDisable (x) (modeFlags = modeFlags & ~x)
-#define telnetMode(x)        (modeFlags & x)
-
-#define MODE_SUPGA    bit(0)
-#define MODE_ECHO     bit(1)
-#define MODE_LINEMODE bit(2)
-
-enum TelnetModes
-{
-  MODE_LOOKING_FOR_CMD,
-  MODE_LOOKING_FOR_TYPE,
-  MODE_LOOKING_FOR_OPT,
-  MODE_LOOKING_FOR_SB_OPT,
-  MODE_LOOKING_FOR_OPT_VAL,
-  MODE_LOOKING_FOR_SE,
-  MODE_LOOKING_FOR_DO_OPT,
-  MODE_LOOKING_FOR_DONT_OPT,
-  MODE_LOOKING_FOR_WILL_OPT,
-  MODE_LOOKING_FOR_WONT_OPT,
-  MODE_DONE
-};
+// From sesTelnetServerConfig.h.
+const char    telnetID[]  FLASHMEM = TELNETID;
+const char    telnetAYT[] FLASHMEM = TELNETAYT;
+const uint8_t mac[]       FLASHMEM = TELNET_MAC;
+const uint8_t ip[]        FLASHMEM = TELNET_IP;
 
 #if defined(TELNET_DEBUG)
 // Store these strings in Flash to save RAM.
@@ -264,46 +271,46 @@ const char opt_forwardx[]   FLASHMEM = "forward-x";
 // 255
 const char opt_exopl[]      FLASHMEM = "EXTENDED-OPTIONS-LIST";
 
+/* Private typedefs: type aliases and opaque handles  */
+
 // Create an array of option codes and pointers to Flash strings, in Flash.
 typedef struct
 {
   const uint8_t code;
   const char    *name;
-} 
-TelnetOptStruct;
+} TelnetOptStruct;
+
+enum TelnetModes
+{
+  MODE_LOOKING_FOR_CMD,
+  MODE_LOOKING_FOR_TYPE,
+  MODE_LOOKING_FOR_OPT,
+  MODE_LOOKING_FOR_SB_OPT,
+  MODE_LOOKING_FOR_OPT_VAL,
+  MODE_LOOKING_FOR_SE,
+  MODE_LOOKING_FOR_DO_OPT,
+  MODE_LOOKING_FOR_DONT_OPT,
+  MODE_LOOKING_FOR_WILL_OPT,
+  MODE_LOOKING_FOR_WONT_OPT,
+  MODE_DONE
+};
+
+/* Private structs: concrete data layouts used by this module */
+
+/* Private static variables */
 
 const TelnetOptStruct telnetOpt[] FLASHMEM =
 {
-  { 
-    OPT_TRANSBIN,   opt_transbin       }
-  ,
-  { 
-    OPT_ECHO,       opt_echo           }
-  ,
-  { 
-    OPT_RECONNECT,  opt_reconnect      }
-  ,
-  { 
-    OPT_SUPGA,      opt_supga          }
-  ,
-  { 
-    OPT_AMSN,       opt_amsn           }
-  ,
-  { 
-    OPT_STATUS,     opt_status         }
-  ,
-  { 
-    OPT_TIMINGMARK, opt_timingmark       }
-  ,
-  { 
-    OPT_RCTE,       opt_rcte       }
-  ,
-  { 
-    OPT_OUTLINEWID, opt_outlinewid       }
-  ,
-  { 
-    OPT_OUTPAGESIZ, opt_outpagesiz       }
-  ,
+  { OPT_TRANSBIN,   opt_transbin       },
+  { OPT_ECHO,       opt_echo           },
+  { OPT_RECONNECT,  opt_reconnect      },
+  { OPT_SUPGA,      opt_supga          },
+  { OPT_AMSN,       opt_amsn           },
+  { OPT_STATUS,     opt_status         },
+  { OPT_TIMINGMARK, opt_timingmark     },
+  { OPT_RCTE,       opt_rcte        },
+  { OPT_OUTLINEWID, opt_outlinewid       },
+  { OPT_OUTPAGESIZ, opt_outpagesiz       },
   // 10-19
   { 
     OPT_NAOCRD,     opt_naocrd       }
@@ -434,24 +441,44 @@ const TelnetOptStruct telnetOpt[] FLASHMEM =
 };
 #endif // #if defined(TELNET_DEBUG)
 
-/*---------------------------------------------------------------------------*/
-/*---------------------------------------------------------------------------*/
-/*---------------------------------------------------------------------------*/
+/* Private function prototypes */
+static bool telnetHandleDo (uint8_t opt);
+static bool telnetHandleDont(uint8_t opt);
 
-const char telnetID[]  FLASHMEM = TELNETID;
-const char telnetAYT[] FLASHMEM = TELNETAYT;
+static bool telnetHandleOptEnable (uint8_t opt);
+static bool telnetHandleOptDisable (uint8_t opt);
 
-/*---------------------------------------------------------------------------*/
-/*---------------------------------------------------------------------------*/
-/*---------------------------------------------------------------------------*/
+static bool telnetHandleWill(uint8_t opt);
+static bool telnetHandleWont(uint8_t opt);
 
+static bool telnetModeEnable (uint8_t mode);
+static bool telnetModeDisable (uint8_t mode);
 
-/*---------------------------------------------------------------------------*/
-// FUNCTIONS
-/*---------------------------------------------------------------------------*/
+static void telnetPrintCmd (uint8_t type);
+static void telnetPrintHex (uint8_t val);
+static void telnetPrintOpt(uint8_t opt);
 
-// Initialize the Ethernet Shield.
-void telnetInit()
+static void telnetSendEsc(void);
+static void telnetSendEscCmd(uint8_t cmd);
+static void telnetSendEscCmd(uint8_t cmd, uint8_t option);
+
+#if defined(SEND_TELNET_SB)
+  static void telnetSendSb(uint8_t option, uint8_t val);
+#endif
+
+static bool telnetWaitForConnection (void);
+static uint8_t telnetRead(EthernetClient client);
+
+/* Public function definitions */
+
+/**
+ * @brief Initialize the Ethernet Shield.
+ *
+ * @param[in] void No parameters.
+ *
+ * @return void No return value.
+ */
+void telnetInit (void)
 {
   // Temporary arrays so we don't waste RAM storing them.
   uint8_t tempMac[6];
@@ -471,11 +498,215 @@ void telnetInit()
 #endif
 }
 
-// Block and wait for an incoming Ethernet TCP connection,
-// or local keyboard connection.
-// true = Telnet connection
-// false = local connection
-bool telnetWaitForConnection()
+
+/**
+ * @brief Disconnect the Telnet client.
+ *
+ * @param[in] void No parameters.
+ *
+ * @return void No return value.
+ */
+void telnetDisconnect (void)
+{
+  Serial.println (F("[Closing Connection]"));
+  if (offlineMode)
+  {
+    offlineMode = false;
+  }
+  else
+  {
+    delay(1);
+    client.stop();
+    telnetConnected = false;
+  }
+}
+
+
+/**
+ * @brief Read string up to len bytes. This code comes from my Hayes AT Command
+ * parser, so the variables are named differently.
+ *
+ * @param[in]  client  The EthernetClient to read from.
+ * @param[out] cmdLine The buffer to store the read string in.
+ * @param[in]  len     The maximum number of bytes to read (including null
+ *                     terminator).
+ *
+ * @return The number of bytes read (not including null terminator), or 255
+ *         if connection lost.
+ */
+#define CR           13
+#define BEL          7
+#define BS           8
+#define CAN          24
+uint8_t telnetInput (EthernetClient client, char *cmdLine, uint8_t len)
+{
+  int     ch;
+  uint8_t cmdLen = 0;
+  bool done;
+  bool echoMode;
+
+  // We cannot read zero bytes, so we won't even try.
+  if (len==0) return 0;
+
+  if (!offlineMode)
+  {
+    // Do we need to let them know they can send us stuff?
+    if (client.connected() && !telnetMode(MODE_SUPGA)) telnetSendEscCmd(T_GA);
+  }
+
+  done = false;
+  while(!done)
+  {
+    //ledBlink();
+
+    // We use this multiple places, so do it once.
+    echoMode = telnetMode(MODE_ECHO);
+
+#if defined(TELNET_MULTISERVER)
+    // Check for secondary connection
+    EthernetClient client2 = goawayServer.available();
+    if (client2)
+    {
+      if (client2.connected())
+      {
+        Serial.println (F("[Secondary client connected.]"));
+        client2.println();
+        client2.println(FLASHSTR(telnetID));
+        client2.println(F("The system is busy right now. Please try again later."));
+        delay(1);
+        client2.stop();
+        Serial.println (F("[Secondary client disconnected.]"));
+      }
+    }
+#endif
+
+    if (!offlineMode)
+    {
+      if (telnetConnected==false)
+      {
+        telnetConnected = telnetWaitForConnection();
+        // If serial (false), start inputting?
+        //if (telnetConnected==false) continue;
+        // Otherwise...
+        // On fresh connection, simulate CR from client.
+        cmdLine[0] = '\0';
+        return 0;
+      }
+      else if (client.connected()==false)
+      {
+        Serial.println (F("\n[Connection Lost]"));
+        telnetDisconnect ();
+        return 255;
+      }
+    }
+
+    ch = -1; // -1 is no data available
+    if (Serial.available()>0)
+    {
+      ch = Serial.read();
+      if (cmdModeCheck (ch)==true) cmdMode();
+      // Make sure we echo local typing to the remote client.
+      echoMode = true;
+    }
+    else if (client.available()>0)
+    {
+      //ch = client.read();
+      if (!offlineMode) ch = telnetRead(client);
+    }
+    else
+    {
+      if (cmdModeCheck (0)==true) cmdMode();
+      continue; // No data. Go back to the while()...
+    }
+    switch(ch)
+    {
+    case -1: // No data available.
+      break;
+
+    case CR:
+      //if (echoMode)
+      if (!offlineMode && telnetConnected)
+      {
+        client.write((char)CR);
+        client.write((char)LF);
+      }
+      Serial.println ();
+      cmdLine[cmdLen] = '\0';
+      done = true;
+      break;
+
+    case CAN: // ^X
+      //print(F("[CAN]"));
+      while(cmdLen>0)
+      {
+        if (!offlineMode && telnetConnected && echoMode)
+        {
+          client.write((char)BS);
+          client.print(F(" "));
+          client.write((char)BS);
+        }
+        Serial.write((char)BS);
+        Serial.print(F(" "));
+        Serial.write((char)BS);
+        cmdLen--;
+      }
+      cmdLen = 0;
+      break;
+
+    case BS:
+    case DEL:
+      if (cmdLen>0)
+      {
+        if (!offlineMode && telnetConnected && echoMode)
+        {
+          client.write((char)BS);
+          client.print(F(" "));
+          client.write((char)BS);
+        }
+        Serial.write((char)BS);
+        Serial.print(F(" "));
+        Serial.write((char)BS);
+        cmdLen--;
+      }
+      break;
+
+    default:
+      // If there is room, store any printable characters in the cmdline.
+      if (cmdLen<len-1)
+      {
+        if ((ch>=32) && (ch<=128)) // isprint(ch) does not work.
+        {
+          if (!offlineMode && telnetConnected && echoMode) client.write((char)ch);
+          Serial.write((char)ch);
+          cmdLine[cmdLen] = ch; //toupper(ch);
+          cmdLen++;
+        }
+        // Ignore other nonprintable characters.
+      }
+      else
+      {
+        //if (echoMode) ???
+        if (!offlineMode && telnetConnected) client.write((char)BEL); // Overflow. Ring 'dat bell.
+        Serial.write((char)BEL);
+      }
+      break;
+    } // end of switch(ch)
+  } // end of while(!done)
+
+  return cmdLen;
+}
+
+/* Private function definitions */
+
+/**
+ * @brief  Block and wait for an incoming Ethernet TCP connection, or local
+ *         keyboard connection.
+ *
+ * @param[in] 
+ *
+ * @return true if Telnet connection, false if local connection
+ */
+static bool telnetWaitForConnection (void)
 {
   Serial.println (F("[Waiting on Connection]"));
   modeFlags = 0;
@@ -510,12 +741,12 @@ bool telnetWaitForConnection()
         delay(100); // half second pause
         while(telnetRead(client));
 
-        /*   
+#if defined(SEND_TELNET_SB)
         // So... What is your terminal type?
         telnetSendSb(OPT_TERMTYPE, 1);
         delay(100); // half second pause
         while(telnetRead(client));
-        */
+#endif
         /*
         // We will control the echo, too.
         if (telnetMode(MODE_ECHO)==false)
@@ -531,23 +762,15 @@ bool telnetWaitForConnection()
   }
 }
 
-void telnetDisconnect (void)
-{
-  Serial.println (F("[Closing Connection]"));
-  if (offlineMode)
-  {
-    offlineMode = false;
-  }
-  else
-  {
-    delay(1);
-    client.stop();
-    telnetConnected = false;
-  }
-}
-
-// Read data from Telnet connection.
-uint8_t telnetRead(EthernetClient client)
+/**
+ * @brief Read data from Telnet connection.
+ *
+ * @param[in] client The Ethernet client to read from.
+ *
+ * @return The character read from the Telnet connection, or 0 if no data is 
+ *         available.
+ */
+static uint8_t telnetRead (EthernetClient client)
 {
   static uint8_t  mode = MODE_LOOKING_FOR_CMD;
   uint8_t         ch;
@@ -761,7 +984,14 @@ uint8_t telnetRead(EthernetClient client)
   return ch;
 }
 
-void telnetSendEsc()
+/**
+ * @brief Send the Telnet escape character.
+ *
+ * @param[in] 
+ *
+ * @return 
+ */
+static void telnetSendEsc (void)
 {
   client.write(T_IAC);
 #if defined(TELNET_DEBUG)
@@ -769,7 +999,15 @@ void telnetSendEsc()
   telnetPrintCmd(T_IAC);
 #endif
 }
-void telnetSendEscCmd(uint8_t cmd)
+
+/**
+ * @brief Send the Telnet escape character, followed by a command.
+ *
+ * @param[in] cmd The Telnet command to send.
+ *
+ * @return 
+ */
+static void telnetSendEscCmd (uint8_t cmd)
 {
   telnetSendEsc();
   client.write(cmd);
@@ -777,7 +1015,16 @@ void telnetSendEscCmd(uint8_t cmd)
   telnetPrintCmd(cmd);
 #endif
 }
-void telnetSendEscCmd(uint8_t cmd, uint8_t option)
+
+/**
+ * @brief Send the Telnet escape character, followed by a command and option.
+ *
+ * @param[in] cmd The Telnet command to send.
+ * @param[in] option The Telnet option to send.
+ *
+ * @return 
+ */
+static void telnetSendEscCmd(uint8_t cmd, uint8_t option)
 {
   telnetSendEscCmd(cmd);
   client.write(option);
@@ -785,7 +1032,18 @@ void telnetSendEscCmd(uint8_t cmd, uint8_t option)
   telnetPrintOpt (option);
 #endif
 }
-void telnetSendSb(uint8_t option, uint8_t val)
+
+#if defined(SEND_TELNET_SB)
+/**
+ * @brief Send the Telnet subnegotiation command, followed by an option and
+ *        value.
+ *
+ * @param[in] option The Telnet option to send.
+ * @param[in] val The value to send.
+ *
+ * @return 
+ */
+static void telnetSendSb (uint8_t option, uint8_t val)
 {
   telnetSendEscCmd(T_SB, option);
   client.write(val);
@@ -797,12 +1055,18 @@ void telnetSendSb(uint8_t option, uint8_t val)
   telnetPrintCmd(T_SE);
 #endif
 }
+#endif
 
-/*---------------------------------------------------------------------------*/
-
+/**
+ * @brief Handle the Telnet WILL command.
+ *
+ * @param[in] opt The Telnet option to handle.
+ *
+ * @return true if the option was enabled, false otherwise.
+ */
 // If the server asks us if we WILL use an option, if we will, we should
 // respond and tell them we DO, or DONT.
-bool telnetHandleWill(uint8_t opt)
+static bool telnetHandleWill(uint8_t opt)
 {
   if (telnetHandleOptEnable (opt)==true)
   {
@@ -813,7 +1077,14 @@ bool telnetHandleWill(uint8_t opt)
   return false;
 }
 
-bool telnetHandleDo (uint8_t opt)
+/**
+ * @brief Handle the Telnet DO command.
+ *
+ * @param[in] opt The Telnet option to handle.
+ *
+ * @return true if the option was enabled, false otherwise.
+ */
+static bool telnetHandleDo (uint8_t opt)
 {
   if (telnetHandleOptEnable (opt)==true)
   {
@@ -824,7 +1095,14 @@ bool telnetHandleDo (uint8_t opt)
   return false;
 }
 
-bool telnetHandleDont(uint8_t opt)
+/**
+ * @brief Handle the Telnet WONT command.
+ *
+ * @param[in] 
+ *
+ * @return true if the option was disabled, false otherwise.
+ */
+static bool telnetHandleDont(uint8_t opt)
 {
   if (telnetHandleOptDisable(opt)==true)
   {
@@ -836,7 +1114,14 @@ bool telnetHandleDont(uint8_t opt)
   return false;
 }
 
-bool telnetHandleWont(uint8_t opt)
+/**
+ * @brief Handle the Telnet WONT command.
+ *
+ * @param[in] opt The Telnet option to handle.
+ *
+ * @return true if the option was disabled, false otherwise.
+ */
+static bool telnetHandleWont(uint8_t opt)
 {
   if (telnetHandleOptDisable(opt)==true)
   {
@@ -848,10 +1133,17 @@ bool telnetHandleWont(uint8_t opt)
   return false;
 }
 
+/**
+ * @brief Handle enabling the Telnet option.
+ *
+ * @param[in] opt The Telnet option to enable.
+ *
+ * @return true if the option was enabled, false otherwise.
+ */
 // Enable the option, if we can.
 // true = we can, and we did.
 // false = we cannot, and we did not.
-bool telnetHandleOptEnable (uint8_t opt)
+static bool telnetHandleOptEnable (uint8_t opt)
 {
   switch(opt)
   {
@@ -885,10 +1177,17 @@ bool telnetHandleOptEnable (uint8_t opt)
   return true;
 }
 
+/**
+ * @brief Handle disabling the Telnet option.
+ *
+ * @param[in] opt The Telnet option to disable. 
+ *
+ * @return true if the option was disabled, false otherwise.
+ */
 // Disable the option, if we can.
 // true = we did
 // false = we did not
-bool telnetHandleOptDisable(uint8_t opt)
+static bool telnetHandleOptDisable (uint8_t opt)
 {
   bool wasDisabled = false;
   switch(opt)
@@ -921,12 +1220,27 @@ bool telnetHandleOptDisable(uint8_t opt)
   return wasDisabled;
 }
 
-bool telnetModeEnable(uint8_t mode)
+/**
+ * @brief Enable a Telnet mode.
+ *
+ * @param[in] mode The Telnet mode to enable.
+ *
+ * @return true if the mode was enabled, false otherwise.
+ */
+static bool telnetModeEnable (uint8_t mode)
 {
   modeFlags = modeFlags | mode;
   return true;
 }
-bool telnetModeDisable (uint8_t mode)
+
+/**
+ * @brief Disable a Telnet mode.
+ *
+ * @param[in] mode The Telnet mode to disable.
+ *
+ * @return true if the mode was disabled, false otherwise.
+ */
+static bool telnetModeDisable (uint8_t mode)
 {
   if (telnetMode(mode)==false) return false;
   modeFlags = modeFlags & ~mode;
@@ -934,178 +1248,18 @@ bool telnetModeDisable (uint8_t mode)
 }
 
 /*---------------------------------------------------------------------------*/
-
-// LINE INPUT str
-// Read string up to len bytes. This code comes from my Hayes AT Command
-// parser, so the variables are named differently.
-#define CR           13
-#define BEL          7
-#define BS           8
-#define CAN          24
-uint8_t telnetInput (EthernetClient client, char *cmdLine, uint8_t len)
-{
-  int     ch;
-  uint8_t cmdLen = 0;
-  bool done;
-  bool echoMode;
-
-  // We cannot read zero bytes, so we won't even try.
-  if (len==0) return 0;
-
-  if (!offlineMode)
-  {
-    // Do we need to let them know they can send us stuff?
-    if (client.connected() && !telnetMode(MODE_SUPGA)) telnetSendEscCmd(T_GA);
-  }
-
-  done = false;
-  while(!done)
-  {
-    //ledBlink();
-
-    // We use this multiple places, so do it once.
-    echoMode = telnetMode(MODE_ECHO);
-
-#if defined(TELNET_MULTISERVER)
-    // Check for secondary connection
-    EthernetClient client2 = goawayServer.available();
-    if (client2)
-    {
-      if (client2.connected())
-      {
-        Serial.println (F("[Secondary client connected.]"));
-        client2.println();
-        client2.println(FLASHSTR(telnetID));
-        client2.println(F("The system is busy right now. Please try again later."));
-        delay(1);
-        client2.stop();
-        Serial.println (F("[Secondary client disconnected.]"));
-      }
-    }
-#endif
-
-    if (!offlineMode)
-    {
-      if (telnetConnected==false)
-      {
-        telnetConnected = telnetWaitForConnection();
-        // If serial (false), start inputting?
-        //if (telnetConnected==false) continue;
-        // Otherwise...
-        // On fresh connection, simulate CR from client.
-        cmdLine[0] = '\0';
-        return 0;
-      }
-      else if (client.connected()==false)
-      {
-        Serial.println (F("\n[Connection Lost]"));
-        telnetDisconnect ();
-        return 255;
-      }
-    }
-
-    ch = -1; // -1 is no data available
-    if (Serial.available()>0)
-    {
-      ch = Serial.read();
-      if (cmdModeCheck (ch)==true) cmdMode();
-      // Make sure we echo local typing to the remote client.
-      echoMode = true;
-    }
-    else if (client.available()>0)
-    {
-      //ch = client.read();
-      if (!offlineMode) ch = telnetRead(client);
-    }
-    else
-    {
-      if (cmdModeCheck (0)==true) cmdMode();
-      continue; // No data. Go back to the while()...
-    }
-    switch(ch)
-    {
-    case -1: // No data available.
-      break;
-
-    case CR:
-      //if (echoMode)
-      if (!offlineMode && telnetConnected)
-      {
-        client.write((char)CR);
-        client.write((char)LF);
-      }
-      Serial.println ();
-      cmdLine[cmdLen] = '\0';
-      done = true;
-      break;
-
-    case CAN: // ^X
-      //print(F("[CAN]"));
-      while(cmdLen>0)
-      {
-        if (!offlineMode && telnetConnected && echoMode)
-        {
-          client.write((char)BS);
-          client.print(F(" "));
-          client.write((char)BS);
-        }
-        Serial.write((char)BS);
-        Serial.print(F(" "));
-        Serial.write((char)BS);
-        cmdLen--;
-      }
-      cmdLen = 0;
-      break;
-
-    case BS:
-    case DEL:
-      if (cmdLen>0)
-      {
-        if (!offlineMode && telnetConnected && echoMode)
-        {
-          client.write((char)BS);
-          client.print(F(" "));
-          client.write((char)BS);
-        }
-        Serial.write((char)BS);
-        Serial.print(F(" "));
-        Serial.write((char)BS);
-        cmdLen--;
-      }
-      break;
-
-    default:
-      // If there is room, store any printable characters in the cmdline.
-      if (cmdLen<len-1)
-      {
-        if ((ch>=32) && (ch<=128)) // isprint(ch) does not work.
-        {
-          if (!offlineMode && telnetConnected && echoMode) client.write((char)ch);
-          Serial.write((char)ch);
-          cmdLine[cmdLen] = ch; //toupper(ch);
-          cmdLen++;
-        }
-        // Ignore other nonprintable characters.
-      }
-      else
-      {
-        //if (echoMode) ???
-        if (!offlineMode && telnetConnected) client.write((char)BEL); // Overflow. Ring 'dat bell.
-        Serial.write((char)BEL);
-      }
-      break;
-    } // end of switch(ch)
-  } // end of while(!done)
-
-  return cmdLen;
-}
-
-/*---------------------------------------------------------------------------*/
 // Telnet Protocol debug stuff. These routines will print out text versions
 // of the Telnet protocol messages sent and recieved.
-//
+
 #if defined(TELNET_DEBUG)
-void telnetPrintCmd (uint8_t type)
+/**
+ * @brief Print a Telnet command.
+ *
+ * @param[in] type The Telnet command type to print.
+ *
+ * @return void No return value.
+ */
+static void telnetPrintCmd (uint8_t type)
 {
   Serial.print(F("["));
   if (type>=T_SE) //&& type<=T_IAC)
@@ -1119,7 +1273,14 @@ void telnetPrintCmd (uint8_t type)
   Serial.print(F("]"));
 }
 
-void telnetPrintOpt (uint8_t opt)
+/**
+ * @brief Print a Telnet option.
+ *
+ * @param[in] opt The Telnet option to print.
+ *
+ * @return void No return value.
+ */
+static void telnetPrintOpt (uint8_t opt)
 {
   bool found;
 
@@ -1138,13 +1299,19 @@ void telnetPrintOpt (uint8_t opt)
   Serial.print(F("]"));
 }
 
-void telnetPrintHex (uint8_t val)
+/**
+ * @brief Print a hexadecimal value.
+ *
+ * @param[in] val The value to print in hexadecimal.
+ *
+ * @return void No return value.
+ */
+static void telnetPrintHex (uint8_t val)
 {
   Serial.print(F("["));
   Serial.print(val, HEX);
   Serial.print(F("]"));
 }
 #endif // #if defined(TELNET_DEBUG)
-/*---------------------------------------------------------------------------*/
-// End of TelnetServer
 
+/*** end of file ***/
