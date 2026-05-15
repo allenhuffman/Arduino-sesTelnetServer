@@ -18,6 +18,13 @@
  */
 /*---------------------------------------------------------------------------*/
 
+#include <stdbool.h>
+#include <stdint.h>
+
+#include <Arduino.h>
+
+#include "sesATParser.h"
+
 #define INBUF_SIZE      80
 #define OUTBUF_SIZE     80
 
@@ -43,81 +50,81 @@ static char  escCharacter = ESC_CHARACTER;  // Escape character
 #define BS           8
 #define CAN          24
 
-void cmdMode()
+void cmdMode (void)
 {
-  char  cmdLine[CMDLINE_SIZE];
-  byte  len;
+  char    cmdLine[CMDLINE_SIZE];
+  uint8_t len;
 
   Serial.println();
   Serial.println("OK");
 
-  while(1)
+  while (1)
   {
-    len = readCmdLine(cmdLine, sizeof(cmdLine));
-    if (len>0)
+    len = readCmdLine (cmdLine, sizeof (cmdLine));
+    if (len > 0)
     {
-      Serial.print(">");
-      Serial.println(cmdLine);
+      Serial.print (">");
+      Serial.println (cmdLine);
 
-      if (strncmp(cmdLine, "ATO", 3)==0) break;
-      if (strncmp(cmdLine, "ATDI", 3)==0)
+      if (strncmp (cmdLine, "ATO", 3) == 0) break;
+      if (strncmp (cmdLine, "ATDI", 3) == 0)
       {
-        Serial.println("Telnet...");
+        Serial.println ("Telnet...");
       }
     }
   } // end of while(1)
 }
 
-byte readCmdLine(char *cmdLine, size_t len)
+uint8_t readCmdLine (char *cmdLine, size_t len)
 {
   char    ch;
-  byte    cmdLen = 0;
-  boolean done;
+  uint8_t cmdLen = 0;
+  bool    done;
 
   done = false;
-  while(!done)
+  while (!done)
   {
     //ledBlink();
-    if (Serial.available()>0)
+    if (Serial.available() > 0)
     {  
-      ch = Serial.read();
+      ch = Serial.read ();
       switch(ch)
       {
       case CR:
-        Serial.println();
+        Serial.println ();
         cmdLine[cmdLen] = '\0';
         done = true;
         break;
 
       case CAN:
-        Serial.println("[CAN]");
+        Serial.println ("[CAN]");
         cmdLen = 0;
         break;
 
       case BS:
-        if (cmdLen>0)
+        if (cmdLen > 0)
         {
-          Serial.write(BS);
-          Serial.print(" ");
-          Serial.write(BS);
+          Serial.write (BS);
+          Serial.print (" ");
+          Serial.write (BS);
           cmdLen--;
         }
         break;
 
       default:
         // If there is room, store any printable characters in the cmdline.
-        if (cmdLen<len)
+        if (cmdLen < len)
         {
-          if ((ch>31) && (ch<127)) // isprint(ch) does not work.
+          if ((ch > 31) && (ch < 127)) // isprint(ch) does not work.
           {
-            Serial.print(ch);
-            cmdLine[cmdLen] = toupper(ch);
+            Serial.print (ch);
+            cmdLine[cmdLen] = toupper (ch);
             cmdLen++;
           }
         }
         else
         {
-          Serial.write(BEL); // Overflow. Ring 'dat bell.
+          Serial.write (BEL); // Overflow. Ring 'dat bell.
         }
         break;
       } // end of switch(ch)           
@@ -131,25 +138,25 @@ byte readCmdLine(char *cmdLine, size_t len)
 // Magic numbers.
 #define ESC_TIMES       3    // Number of escape characters ("+++").
 
-boolean cmdModeCheck(char ch)
+bool cmdModeCheck (char ch)
 {
   static unsigned long escCheckTime = 0; // Next time to check.
-  static byte          escCounter = 0;   // Number of esc chars seen.
+  static uint8_t       escCounter = 0;   // Number of esc chars seen.
 
   // If no character is being passed in, we are just doing a check to see if
   // we are in a "wait for end guard time" mode.
-  if (ch==0)
+  if (ch == 0)
   {
     // See if we are waiting to enter command mode.
     // if (escSequence[escCounter]=='\0')
-    if(escCounter==ESC_TIMES)
+    if (escCounter == ESC_TIMES)
     {
       // Yep, we have already found all the escape sequence characters.
       if ((long)(millis()-escCheckTime) >= 0)
       {
         // And the pause has been long enough! We found an escape sequence.
         escCounter = 0;
-        escCheckTime = millis()+escGuardTime;
+        escCheckTime = millis () + escGuardTime;
 
         return true; // Yes, it is time for Command Mode.
       }
@@ -158,35 +165,35 @@ boolean cmdModeCheck(char ch)
   else // if (ch==0)
   {
     // If there has been a pause since the last input character...
-    if ((long)(millis()-escCheckTime) >= 0)
+    if ((long)(millis () - escCheckTime) >= 0)
     {
       // Check to see if it's an escape byte.
       // if (ch==escSequence[escCounter])
-      if (ch==escCharacter)
+      if (ch == escCharacter)
       {
         // Move to next character to look for.
         escCounter++;
 
         // Are we out of escape characters to check for?
         // if (escSequence[escCounter]=='\0')
-        if (escCounter>=ESC_TIMES)
+        if (escCounter >= ESC_TIMES)
         {
           // Set after delay to signify end of escape sequence.
-          escCheckTime = millis()+escGuardTime;
+          escCheckTime = millis () + escGuardTime;
         }  
       }
       else
       {
         // Reset. Not an escape character.
         escCounter = 0;
-        escCheckTime = millis()+escGuardTime;
+        escCheckTime = millis () + escGuardTime;
       }
     }
     else
     {
       // Reset. Not an escape character.
       escCounter = 0;
-      escCheckTime = millis()+escGuardTime;
+      escCheckTime = millis () + escGuardTime;
     }
   } // end of if (ch==0) else
 

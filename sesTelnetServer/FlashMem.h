@@ -21,6 +21,9 @@
  2014-03-03 0.00 allenh - Posted to GitHub.
  2014-03-04 0.01 allenh - Added header comments, created README on how to use.
  -----------------------------------------------------------------------------*/
+#ifndef FLASHMEM_H
+#define FLASHMEM_H
+
 #ifdef USE_FLASH
 #define FLASHMEM PROGMEM
 #define FLASHSTR(x) (const __FlashStringHelper*)(x)
@@ -32,4 +35,6 @@
 #define FLASHPTR(x) (x) //(const char *)(x)
 #endif
 //#define PGMT(pgm_ptr) (reinterpret_cast<const __FlashStringHelper *>(pgm_ptr))
+
+#endif /* FLASHMEM_H */
 

@@ -25,10 +25,10 @@ FILES
 =====
 
 * README.md - this file
-* sesATParser.ino - Hayes AT command parser, "+++" to enter command mode
-* sesTelnetServer.ino - the actual Telnet server code
+* sesATParser.cpp - Hayes AT command parser, "+++" to enter command mode
+* sesTelnetServer.cpp - the actual Telnet server code
 * sesTelnetServerConfig.h - IP/Mac address and some debug on/off build settings
-* TelnetServerDemo.ino - end-user demo program on how to use the server
+* sesTelnetServer.ino - end-user demo program on how to use the server
 
 CONFIGURATION
 =============

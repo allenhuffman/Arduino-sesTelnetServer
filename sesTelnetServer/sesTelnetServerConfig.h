@@ -1,3 +1,5 @@
+#ifndef SESTELNETSERVERCONFIG_H
+#define SESTELNETSERVERCONFIG_H
 
 // Define this to make all the strings live in Flash instead of RAM.
 #define USE_FLASH
@@ -24,3 +26,4 @@ const byte ip[] FLASHMEM  = { 192, 168, 0, 200};
 // Define the AYT (Are You There) response string.
 #define TELNETAYT "Yes. Why do you ask?"
 
+#endif /* SESTELNETSERVERCONFIG_H */
