@@ -1,14 +1,13 @@
-/** @file template.h
+/** @file sesTelnetConfig.h
  *
  * @author Allen C. Huffman
  * @copyright Copyright (c) 2026 Sub-Etha Software
  * @note Origin: https://github.com/allenhuffman
- * @note This file follows the Barr-C Embedded C Coding Standard.
+ * @note This file is being converted to the BARR-C Embedded C Coding Standard.
  *
  * @brief Public interface for the template module.
  *
- * @details This module is implemented according to the Barr Group
- * Embedded C Coding Standard (Barr-C).
+ * @details Configuration file for the Telnet Server.
  *
  * @section history File History
  * - 2026-XX-XX allenh - Created.
@@ -34,7 +33,7 @@
 
 // Define this to include printing basic Telnet protocol information. This
 // will include a bunch of Flash strings.
-#define TELNET_DEBUG // takes about 1176 bytes of Flash + 14 bytes of RAM.
+//#define TELNET_DEBUG // takes about 1176 bytes of Flash + 14 bytes of RAM.
 
 // Define this to use multiserver support,but only if you have fixed your
 // Ethernet library to allow it. See:

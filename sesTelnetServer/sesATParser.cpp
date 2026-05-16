@@ -4,7 +4,7 @@
  * @author Allen C. Huffman
  * @copyright Copyright (c) 2026 Sub-Etha Software
  * @note Origin: https://github.com/allenhuffman
- * @note This file follows the Barr-C Embedded C Coding Standard.
+ * @note This file is being converted to the BARR-C Embedded C Coding Standard.
  *
  * @brief Hayes AT Command Parser
  *
@@ -34,12 +34,9 @@
 
 /* External module headers */
 
-#include <Arduino.h>
+#include <Arduino.h> // for Serial
 
 /* Public data definitions */
-/* In the case of a variable name requiring multiple of the above prefixes, the
-   order of their inclusion before the first underscore shall be
-   [g][p|pp][b|h]. */
 
 /* Private macros: all #define items, constants and function-like macros */
 
@@ -54,11 +51,11 @@
 #define ESC_CHARACTER   '+'  // Default escape character.
 #define ESC_TIMES       3    // Number of escape characters ("+++").
 
-#define CMDLINE_SIZE 80
-#define CR           13
-#define BEL          7
-#define BS           8
-#define CAN          24
+#define CMDLINE_SIZE    80
+#define CR              13
+#define BEL             7
+#define BS              8
+#define CAN             24
 
 /* Private constants: typed, debugger-visible constants (prefer static const) */
 
@@ -94,11 +91,11 @@ bool cmdModeCheck (char ch)
 
   // If no character is being passed in, we are just doing a check to see if
   // we are in a "wait for end guard time" mode.
-  if (ch == 0)
+  if (0 == ch)
   {
     // See if we are waiting to enter command mode.
     // if (escSequence[escCounter]=='\0')
-    if (escCounter == ESC_TIMES)
+    if (ESC_TIMES == escCounter)
     {
       // Yep, we have already found all the escape sequence characters.
       if ((long)(millis()-escCheckTime) >= 0)
@@ -111,7 +108,7 @@ bool cmdModeCheck (char ch)
       }
     }
   }
-  else // if (ch==0)
+  else // if (0 == ch)
   {
     // If there has been a pause since the last input character...
     if ((long)(millis () - escCheckTime) >= 0)
@@ -125,7 +122,7 @@ bool cmdModeCheck (char ch)
 
         // Are we out of escape characters to check for?
         // if (escSequence[escCounter]=='\0')
-        if (escCounter >= ESC_TIMES)
+        if (ESC_TIMES <= escCounter)
         {
           // Set after delay to signify end of escape sequence.
           escCheckTime = millis () + escGuardTime;
@@ -146,7 +143,7 @@ bool cmdModeCheck (char ch)
     }
   } // end of if (ch==0) else
 
-    return false; // No, it is not time for Command Mode.
+  return false; // No, it is not time for Command Mode.
 }
 
 /**
@@ -173,13 +170,17 @@ void cmdMode (void)
       Serial.print (">");
       Serial.println (cmdLine);
 
-      if (strncmp (cmdLine, "ATO", 3) == 0) break;
-      if (strncmp (cmdLine, "ATDI", 3) == 0)
+      // TODO: This should be moved into flash storage.
+      if (strncmp (cmdLine, "ATO", 3) == 0)
+      {
+        break;
+      }
+      else if (strncmp (cmdLine, "ATDI", 3) == 0)
       {
         Serial.println ("Telnet...");
       }
     }
-  } // end of while(1)
+  } // end of while (1)
 }
 
 /* Private function definitions */
@@ -205,44 +206,45 @@ static uint8_t readCmdLine (char *cmdLine, size_t len)
     if (Serial.available () > 0)
     {  
       ch = Serial.read ();
+
       switch(ch)
       {
-      case CR:
-        Serial.println ();
-        cmdLine[cmdLen] = '\0';
-        done = true;
+        case CR:
+          Serial.println ();
+          cmdLine[cmdLen] = '\0';
+          done = true;
         break;
 
-      case CAN:
-        Serial.println ("[CAN]");
-        cmdLen = 0;
+        case CAN:
+          Serial.println ("[CAN]");
+          cmdLen = 0;
         break;
 
-      case BS:
-        if (cmdLen > 0)
-        {
-          Serial.write (BS);
-          Serial.print (" ");
-          Serial.write (BS);
-          cmdLen--;
-        }
-        break;
-
-      default:
-        // If there is room, store any printable characters in the cmdline.
-        if (cmdLen < len)
-        {
-          if ((ch > 31) && (ch < 127)) // isprint(ch) does not work.
+        case BS:
+          if (cmdLen > 0)
           {
-            Serial.print (ch);
-            cmdLine[cmdLen] = toupper (ch);
-            cmdLen++;
+            Serial.write (BS);
+            Serial.print (" ");
+            Serial.write (BS);
+            cmdLen--;
           }
-        }
-        else
-        {
-          Serial.write (BEL); // Overflow. Ring 'dat bell.
-        }
+        break;
+
+        default:
+          // If there is room, store any printable characters in the cmdline.
+          if (cmdLen < len)
+          {
+            if ((ch > 31) && (ch < 127)) // isprint(ch) does not work.
+            {
+              Serial.print (ch);
+              cmdLine[cmdLen] = toupper (ch);
+              cmdLen++;
+            }
+          }
+          else
+          {
+            Serial.write (BEL); // Overflow. Ring 'dat bell.
+          }
         break;
       } // end of switch(ch)           
     } // end of if (Serial.available()>0)

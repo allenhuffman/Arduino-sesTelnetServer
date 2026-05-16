@@ -15,58 +15,63 @@
 #include <Arduino.h>
 
 #include "FlashMem.h"
+
 #include "sesTelnetServer.h"
 #include "sesTelnetServerConfig.h"
 
-void setup()
+static unsigned int freeRam(void);
+static void showFreeRam(void);
+
+#define INPUT_SIZE 40
+
+void setup ()
 {
-  Serial.begin(9600);
-  while(!Serial);
+  Serial.begin (9600);
+  while (!Serial);
 
   Serial.println ();
   Serial.println (FLASHSTR(telnetID));
 
-  showFreeRam();
+  showFreeRam ();
 
-  telnetInit();
+  telnetInit ();
 }
 
 /*---------------------------------------------------------------------------*/
 
-#define INPUT_SIZE 40
-void loop()
+void loop ()
 {
   char    buffer[INPUT_SIZE];
   uint8_t count;
 
-  showFreeRam();
+  showFreeRam ();
 
   // If we are offline, we will just take local input.
   if (offlineMode)
   {
-    Serial.print(F("[Offline]Command: "));
+    Serial.print (F("[Offline]Command: "));
   }
   else if (telnetConnected)
   {
     // Else, we are talking remotely. Echo to remote and local.
-    client.print(F("[Telnet]Command: "));
-    Serial.print(F("[Telnet]Command: "));
+    client.print (F("[Telnet]Command: "));
+    Serial.print (F("[Telnet]Command: "));
   }
 
   // Get input from remote (if connected) or local.
   count = telnetInput (client, buffer, INPUT_SIZE);
-  if (count==255) // 255=connection lost
+  if (255 == count) // 255=connection lost
   {
     Serial.println (F("[Connection Lost]"));
   }
   else // count is how many bytes of data we read in to buffer.
   {
-    Serial.print(count);
+    Serial.print (count);
     Serial.println (F(" bytes received from client."));
   }
 
   // If first three characters are "BYE"...
-  if (strcmp_P(buffer, PSTR("BYE"))==0)
+  if (strcmp_P (buffer, PSTR("BYE"))==0)
   {
     // If we are offline currently...
     if (offlineMode)
@@ -77,22 +82,25 @@ void loop()
     }
     
     // And, if we are connected, disconnect.
-    if (telnetConnected==true) telnetDisconnect();
+    if (true == telnetConnected)
+    {
+      telnetDisconnect();
+    }
   }
 }
 
 /*---------------------------------------------------------------------------*/
 
-unsigned int freeRam()
+static unsigned int freeRam (void)
 {
   extern int __heap_start, *__brkval; 
   int v; 
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 }
 
-void showFreeRam()
+static void showFreeRam (void)
 {
-  Serial.print(F("Free RAM: "));
+  Serial.print (F("Free RAM: "));
   Serial.println (freeRam());
 }
 

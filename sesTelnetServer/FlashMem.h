@@ -3,7 +3,7 @@
  * @author Allen C. Huffman
  * @copyright Copyright (c) 2026 Sub-Etha Software
  * @note Origin: https://github.com/allenhuffman
- * @note This file follows the Barr-C Embedded C Coding Standard.
+ * @note This is being converted to the BARR-C Embedded C Coding Standard.
  *
  * @brief Flash Memory macros.
  *

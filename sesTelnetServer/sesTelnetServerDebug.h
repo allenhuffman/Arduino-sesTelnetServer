@@ -1,4 +1,4 @@
-/** @file sesATParser.h
+/** @file sesTelnetServerDebug.h
  *
  * @author Allen C. Huffman
  * @copyright Copyright (c) 2026 Sub-Etha Software
@@ -7,20 +7,17 @@
  *
  * @brief Public interface for the template module.
  *
- * @details This module is implemented according to the Barr Group
- * Embedded C Coding Standard (Barr-C).
+ * @details 
  *
  * @section history File History
  * - 2026-05-15 0.00 allenh - Applied new template.
  */
 
-#ifndef SESTATPARSER_H
-#define SESTATPARSER_H
+#ifndef SESTELNETSERVERDEBUG_H
+#define SESTELNETSERVERDEBUG_H
 
 /* System headers */
 
-#include <stdbool.h>
-#include <stddef.h>     // for size_t
 #include <stdint.h>
 
 /* External module headers */
@@ -38,12 +35,10 @@
 /* Public variables */
 
 /* Public function prototypes */
+void telnetPrintCmd(uint8_t type);
+void telnetPrintHex(uint8_t val);
+void telnetPrintOpt(uint8_t opt);
 
-bool    cmdModeCheck(char ch);
-
-void    cmdMode(void);
-
-#endif /* SESTATPARSER_H */
+#endif /* SESTELNETSERVER_H */
 
 /*** end of file ***/
-
