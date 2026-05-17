@@ -23,22 +23,32 @@
  * @todo Make an echoPrint() function that will only print if in half duplex mode.
  */
 
-/* System headers */
+/*---------------------------------------------------------------------------*/
+// System headers
+/*---------------------------------------------------------------------------*/
 
 #include <stdbool.h>
 #include <stdint.h>
 
-/* This module's header (must be first among project headers) */
+/*---------------------------------------------------------------------------*/
+// This module's header (must be first among project headers)
+/*---------------------------------------------------------------------------*/
 
 #include "sesATParser.h"
 
-/* External module headers */
+/*---------------------------------------------------------------------------*/
+// External module headers
+/*---------------------------------------------------------------------------*/
 
 #include <Arduino.h> // for Serial
 
-/* Public data definitions */
+/*---------------------------------------------------------------------------*/
+// Public data definitions
+/*---------------------------------------------------------------------------*/
 
-/* Private macros: all #define items, constants and function-like macros */
+/*---------------------------------------------------------------------------*/
+// Private macros: all #define items, constants and function-like macros
+/*---------------------------------------------------------------------------*/
 
 #define INBUF_SIZE      80
 #define OUTBUF_SIZE     80
@@ -57,25 +67,39 @@
 #define BS              8
 #define CAN             24
 
-/* Private constants: typed, debugger-visible constants (prefer static const) */
+/*---------------------------------------------------------------------------*/
+// Private constants: typed, debugger-visible constants (prefer static const)
+/*---------------------------------------------------------------------------*/
 
-/* Private typedefs: type aliases and opaque handles  */
+/*---------------------------------------------------------------------------*/
+// Private typedefs: type aliases and opaque handles
+/*---------------------------------------------------------------------------*/
 
-/* Private enums */
+/*---------------------------------------------------------------------------*/
+// Private enums
+/*---------------------------------------------------------------------------*/
 
-/* Private structs: concrete data layouts used by this module */
+/*---------------------------------------------------------------------------*/
+// Private structs: concrete data layouts used by this module
+/*---------------------------------------------------------------------------*/
 
-/* Private static variables */
+/*---------------------------------------------------------------------------*/
+// Private static variables
+/*---------------------------------------------------------------------------*/
 
 // For Command Mode.
 static unsigned int escGuardTime = ESC_GUARD_TIME; // Delay before/after esc sequence.
 static char         escCharacter = ESC_CHARACTER;  // Escape character
 
-/* Private function prototypes */
+/*---------------------------------------------------------------------------*/
+// Private function prototypes
+/*---------------------------------------------------------------------------*/
 
 static uint8_t readCmdLine(char *cmdLine, size_t len);
 
-/* Public function definitions */
+/*---------------------------------------------------------------------------*/
+// Public function definitions
+/*---------------------------------------------------------------------------*/
 
 /**
  * @brief Process some Hayes modem style "AT" commands.

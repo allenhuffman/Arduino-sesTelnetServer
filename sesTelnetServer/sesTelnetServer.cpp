@@ -37,17 +37,21 @@ __asm volatile ("nop");
 
 //#define TELNET_DEBUG // Uncomment to enable debug output of Telnet commands and options.
 
-/*---------------------------------------------------------------------------*/
 // Telnet protocol stuff.
 // Reference: http://www.softpanorama.net/Net/Application_layer/telnet.shtml
 
-/* System headers */
+/*---------------------------------------------------------------------------*/
+// System headers
+/*---------------------------------------------------------------------------*/
 
 /* This module's header (must be first among project headers) */
 #include "sesTelnetServer.h"
 #include "sesTelnetServerConfig.h"
 
-/* External module headers */
+/*---------------------------------------------------------------------------*/
+// External module headers
+/*---------------------------------------------------------------------------*/
+
 #include <avr/pgmspace.h>
 #include <Ethernet.h>
 #include <SPI.h>
@@ -57,7 +61,9 @@ __asm volatile ("nop");
   #include "sesTelnetServerDebug.h"
 #endif
 
-/* Public data definitions */
+/*---------------------------------------------------------------------------*/
+// Public data definitions
+/*---------------------------------------------------------------------------*/
 
 EthernetServer telnetServer = EthernetServer(23); // Server on this port.
 #if defined(TELNET_MULTISERVER)
@@ -68,7 +74,9 @@ bool            telnetConnected = false;
 bool            offlineMode = false;
 uint8_t         modeFlags = 0;            // Global option bit flags.
 
-/* Private macros: all #define items, constants and function-like macros */
+/*---------------------------------------------------------------------------*/
+// Private macros: all #define items, constants and function-like macros
+/*---------------------------------------------------------------------------*/
 
 //#define SEND_TELNET_SB
 
@@ -91,7 +99,9 @@ uint8_t         modeFlags = 0;            // Global option bit flags.
 #define CR      13 // Carriage return
 #define DEL     0x7f // Delete key for some terminals.
 
-/* Private constants: typed, debugger-visible constants (prefer static const) */
+/*---------------------------------------------------------------------------*/
+// Private constants: typed, debugger-visible constants (prefer static const)
+/*---------------------------------------------------------------------------*/
 
 // From sesTelnetServerConfig.h.
 const char    telnetID[]  FLASHMEM = TELNETID;
@@ -99,7 +109,9 @@ const char    telnetAYT[] FLASHMEM = TELNETAYT;
 const uint8_t mac[]       FLASHMEM = TELNET_MAC;
 const uint8_t ip[]        FLASHMEM = TELNET_IP;
 
-/* Private typedefs: type aliases and opaque handles  */
+/*---------------------------------------------------------------------------*/
+// Private typedefs: type aliases and opaque handles
+/*---------------------------------------------------------------------------*/
 
 enum TelnetModes
 {
@@ -116,11 +128,18 @@ enum TelnetModes
   MODE_DONE
 };
 
-/* Private structs: concrete data layouts used by this module */
+/*---------------------------------------------------------------------------*/
+// Private structs: concrete data layouts used by this module
+/*---------------------------------------------------------------------------*/
 
-/* Private static variables */
+/*---------------------------------------------------------------------------*/
+// Private static variables
+/*---------------------------------------------------------------------------*/
 
-/* Private function prototypes */
+/*---------------------------------------------------------------------------*/
+// Private function prototypes
+/*---------------------------------------------------------------------------*/
+
 static bool telnetHandleDo (uint8_t opt);
 static bool telnetHandleDont(uint8_t opt);
 
@@ -144,7 +163,9 @@ static void telnetSendEscCmd(uint8_t cmd, uint8_t option);
 static bool telnetWaitForConnection (void);
 static uint8_t telnetRead(EthernetClient client);
 
-/* Public function definitions */
+/*---------------------------------------------------------------------------*/
+// Public function definitions
+/*---------------------------------------------------------------------------*/
 
 /**
  * @brief Initialize the Ethernet Shield.
@@ -371,7 +392,9 @@ uint8_t telnetInput (EthernetClient client, char *cmdLine, uint8_t len)
   return cmdLen;
 }
 
-/* Private function definitions */
+/*---------------------------------------------------------------------------*/
+// Private function definitions
+/*---------------------------------------------------------------------------*/
 
 /**
  * @brief  Block and wait for an incoming Ethernet TCP connection, or local

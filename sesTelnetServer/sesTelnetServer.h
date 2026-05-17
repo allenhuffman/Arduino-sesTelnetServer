@@ -16,15 +16,21 @@
 #ifndef SESTELNETSERVER_H
 #define SESTELNETSERVER_H
 
-/* System headers */
+/*---------------------------------------------------------------------------*/
+// System headers
+/*---------------------------------------------------------------------------*/
 
 #include <stdint.h>
 
-/* External module headers */
+/*---------------------------------------------------------------------------*/
+// External module headers
+/*---------------------------------------------------------------------------*/
 
 #include <Ethernet.h> // for EthernetClient 
 
-/* Public macros: all #define items, constants and function-like macros */
+/*---------------------------------------------------------------------------*/
+// Public macros: all #define items, constants and function-like macros
+/*---------------------------------------------------------------------------*/
 
 // Commands - IAC,<type of operation>,<option>
 #define T_EOF           236 // End of file?
@@ -104,15 +110,26 @@
 // 50-137 Unassigned    
 #define OPT_EXOPL       255// EXTENDED-OPTIONS-LIST (EXOPL) extended opt list
 
-/* Public constants: typed, debugger-visible constants (prefer static const) */
+/*---------------------------------------------------------------------------*/
+// Public constants: typed, debugger-visible constants (prefer static const)
+/*---------------------------------------------------------------------------*/
 
-/* Public typedefs: type aliases and opaque handles   */
+/*---------------------------------------------------------------------------*/
+// Public typedefs: type aliases and opaque handles
+/*---------------------------------------------------------------------------*/
 
-/* Public enums */
+/*---------------------------------------------------------------------------*/
+// Public enums
+/*---------------------------------------------------------------------------*/
 
-/* Public structs: concrete data layouts used by this module */
+/*---------------------------------------------------------------------------*/
+// Public structs: concrete data layouts used by this module
+/*---------------------------------------------------------------------------*/
 
-/* Public variables */
+/*---------------------------------------------------------------------------*/
+// Public variables
+/*---------------------------------------------------------------------------*/
+
 extern const char       telnetID[];   // FLASHMEM?  
 extern const char       telnetAYT[];  // FLASHMEM?
 
@@ -121,7 +138,9 @@ extern boolean          offlineMode;
 
 extern EthernetClient   client;
 
-/* Public function prototypes */
+/*---------------------------------------------------------------------------*/
+// Public function prototypes
+/*---------------------------------------------------------------------------*/
 
 void    telnetInit(void);
 uint8_t telnetInput(EthernetClient client, char *cmdLine, uint8_t len);

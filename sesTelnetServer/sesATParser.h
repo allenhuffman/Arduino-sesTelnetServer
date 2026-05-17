@@ -17,27 +17,45 @@
 #ifndef SESTATPARSER_H
 #define SESTATPARSER_H
 
-/* System headers */
+/*---------------------------------------------------------------------------*/
+// System headers
+/*---------------------------------------------------------------------------*/
 
 #include <stdbool.h>
 #include <stddef.h>     // for size_t
 #include <stdint.h>
 
-/* External module headers */
+/*---------------------------------------------------------------------------*/
+// External module headers
+/*---------------------------------------------------------------------------*/
 
-/* Public macros: all #define items, constants and function-like macros */
+/*---------------------------------------------------------------------------*/
+// Public macros: all #define items, constants and function-like macros
+/*---------------------------------------------------------------------------*/
 
-/* Public constants: typed, debugger-visible constants (prefer static const) */
+/*---------------------------------------------------------------------------*/
+// Public constants: typed, debugger-visible constants (prefer static const)
+/*---------------------------------------------------------------------------*/
 
-/* Public typedefs: type aliases and opaque handles   */
+/*---------------------------------------------------------------------------*/
+// Public typedefs: type aliases and opaque handles
+/*---------------------------------------------------------------------------*/
 
-/* Public enums */
+/*---------------------------------------------------------------------------*/
+// Public enums
+/*---------------------------------------------------------------------------*/
 
-/* Public structs: concrete data layouts used by this module */
+/*---------------------------------------------------------------------------*/
+// Public structs: concrete data layouts used by this module
+/*---------------------------------------------------------------------------*/
 
-/* Public variables */
+/*---------------------------------------------------------------------------*/
+// Public variables
+/*---------------------------------------------------------------------------*/
 
-/* Public function prototypes */
+/*---------------------------------------------------------------------------*/
+// Public function prototypes
+/*---------------------------------------------------------------------------*/
 
 bool    cmdModeCheck(char ch);
 

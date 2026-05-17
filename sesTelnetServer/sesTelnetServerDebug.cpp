@@ -16,23 +16,37 @@
  * - 2026-05-15 1.03 allenh - Created from sesTelnetServer.cpp.
  */
 
-/* System headers */
+/*---------------------------------------------------------------------------*/
+// System headers
+/*---------------------------------------------------------------------------*/
 
-/* This module's header (must be first among project headers) */
+/*---------------------------------------------------------------------------*/
+// This module's header (must be first among project headers)
+/*---------------------------------------------------------------------------*/
+
 #include "sesTelnetServer.h"
 #include "sesTelnetServerConfig.h"
 
-/* External module headers */
+/*---------------------------------------------------------------------------*/
+// External module headers
+/*---------------------------------------------------------------------------*/
+
 #include <avr/pgmspace.h>
 #include <Ethernet.h>
 #include <SPI.h>
 #include "sesATParser.h"
 
-/* Public data definitions */
+/*---------------------------------------------------------------------------*/
+// Public data definitions
+/*---------------------------------------------------------------------------*/
 
-/* Private macros: all #define items, constants and function-like macros */
+/*---------------------------------------------------------------------------*/
+// Private macros: all #define items, constants and function-like macros
+/*---------------------------------------------------------------------------*/
 
-/* Private constants: typed, debugger-visible constants (prefer static const) */
+/*---------------------------------------------------------------------------*/
+// Private constants: typed, debugger-visible constants (prefer static const)
+/*---------------------------------------------------------------------------*/
 
 // Store these strings in Flash to save RAM.
 const char SEstr[]   FLASHMEM = "SE";
@@ -120,7 +134,9 @@ const char opt_forwardx[]   FLASHMEM = "forward-x";
 // 255
 const char opt_exopl[]      FLASHMEM = "EXTENDED-OPTIONS-LIST";
 
-/* Private typedefs: type aliases and opaque handles  */
+/*---------------------------------------------------------------------------*/
+// Private typedefs: type aliases and opaque handles
+/*---------------------------------------------------------------------------*/
 
 // Create an array of option codes and pointers to Flash strings, in Flash.
 typedef struct
@@ -129,9 +145,13 @@ typedef struct
   const char    *name;
 } TelnetOptStruct;
 
-/* Private structs: concrete data layouts used by this module */
+/*---------------------------------------------------------------------------*/
+// Private structs: concrete data layouts used by this module
+/*---------------------------------------------------------------------------*/
 
-/* Private static variables */
+/*---------------------------------------------------------------------------*/
+// Private static variables
+/*---------------------------------------------------------------------------*/
 
 static const TelnetOptStruct telnetOpt[] FLASHMEM =
 {
@@ -193,9 +213,13 @@ static const TelnetOptStruct telnetOpt[] FLASHMEM =
   { OPT_EXOPL,      opt_exopl       }
 };
 
-/* Private function prototypes */
+/*---------------------------------------------------------------------------*/
+// Private function prototypes
+/*---------------------------------------------------------------------------*/
 
-/* Public function definitions */
+/*---------------------------------------------------------------------------*/
+// Public function definitions
+/*---------------------------------------------------------------------------*/
 
 /**
  * @brief Print a Telnet command.
@@ -258,6 +282,8 @@ void telnetPrintHex (uint8_t val)
   Serial.print (F("]"));
 }
 
-/* Private function definitions */
+/*---------------------------------------------------------------------------*/
+// Private function definitions
+/*---------------------------------------------------------------------------*/
 
 /*** end of file ***/

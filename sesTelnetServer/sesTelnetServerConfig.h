@@ -17,11 +17,15 @@
 #ifndef SESTELNETSERVERCONFIG_H
 #define SESTELNETSERVERCONFIG_H
 
-/* System headers */
+/*---------------------------------------------------------------------------*/
+// System headers
+/*---------------------------------------------------------------------------*/
 
 #include <stdint.h>
 
-/* External module headers */
+/*---------------------------------------------------------------------------*/
+// External module headers
+/*---------------------------------------------------------------------------*/
 
 // Define this to make all the strings live in Flash instead of RAM.
 #define USE_FLASH
@@ -29,7 +33,9 @@
 // Then include this to get the FLASHMEM, FLASTSTR, and FLASHPTR defines.
 #include "FlashMem.h"
 
-/* Public macros: all #define items, constants and function-like macros */
+/*---------------------------------------------------------------------------*/
+// Public macros: all #define items, constants and function-like macros
+/*---------------------------------------------------------------------------*/
 
 // Define this to include printing basic Telnet protocol information. This
 // will include a bunch of Flash strings.
@@ -46,22 +52,34 @@
 // Define the AYT (Are You There) response string.
 #define TELNETAYT "Yes. Why do you ask?"
 
-/* Public constants: typed, debugger-visible constants (prefer static const) */
+/*---------------------------------------------------------------------------*/
+// Public constants: typed, debugger-visible constants (prefer static const)
+/*---------------------------------------------------------------------------*/
 
 // Configure telnet server MAC address and IP address. These must be comma-
 // separated lists numbers (hex or deximal) in curly braces.
 #define TELNET_MAC { 0x2A, 0xA0, 0xD8, 0xFC, 0x8B, 0xEF }
 #define TELNET_IP  { 192, 168, 0, 200}
 
-/* Public typedefs: type aliases and opaque handles   */
+/*---------------------------------------------------------------------------*/
+// Public typedefs: type aliases and opaque handles
+/*---------------------------------------------------------------------------*/
 
-/* Public enums */
+/*---------------------------------------------------------------------------*/
+// Public enums
+/*---------------------------------------------------------------------------*/
 
-/* Public structs: concrete data layouts used by this module */
+/*---------------------------------------------------------------------------*/
+// Public structs: concrete data layouts used by this module
+/*---------------------------------------------------------------------------*/
 
-/* Public variables */
+/*---------------------------------------------------------------------------*/
+// Public variables
+/*---------------------------------------------------------------------------*/
 
-/* Public function prototypes */
+/*---------------------------------------------------------------------------*/
+// Public function prototypes
+/*---------------------------------------------------------------------------*/
 
 #endif /* SESTELNETSERVERCONFIG_H */
 
