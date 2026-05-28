@@ -1,30 +1,85 @@
-/*-----------------------------------------------------------------------------
- 
- Sub-Etha Software's Arduino Telnet Server DEMO
- By Allen C. Huffman
- www.subethasoftware.com
- 
- This is an example of how to use the Sub-Etha Software Telnet Server. To
- configure, edit "sesTelnetServerConfig.h" as appropriate.
- 
- 2014-03-03 1.00 allenh - Created this demo program.
- 
- CHECK BACK FOR UPDATES! Much more still to be done...
- -----------------------------------------------------------------------------*/
+/**
+ * @file template.c
+ *
+ * @author Allen C. Huffman
+ * @copyright Copyright (c) 2026 Sub-Etha Software
+ * @note Origin: https://github.com/allenhuffman
+ * @note This file uses the Barr-C Embedded C Coding Standard.
+ *
+ * @brief Telnet server test program.
+ *
+ * @details This is an example of how to use the Sub-Etha Software Telnet
+ * Server. To configure, edit "sesTelnetServerConfig.h" as appropriate.
+ *
+ * @section history File History
+ * - 2014-03-03 1.00 allenh - Created this demo program.
+ *
+ * @todo Get old UNO code working on new Arduinos.
+ */
 
-#include <Arduino.h>
+ /*---------------------------------------------------------------------------*/
+// System headers
+/*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+// This module's header (must be first among project headers)
+/*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+// External module headers
+/*---------------------------------------------------------------------------*/
+
+#include <Arduino.h> // for access to Serial.
 
 #include "FlashMem.h"
-
 #include "sesTelnetServer.h"
 #include "sesTelnetServerConfig.h"
 
-static unsigned int freeRam(void);
-static void showFreeRam(void);
+/*---------------------------------------------------------------------------*/
+// Public data definitions
+/*---------------------------------------------------------------------------*/
 
-#define INPUT_SIZE 40
+/*---------------------------------------------------------------------------*/
+// Private macros: all #define items, constants and function-like macros
+/*---------------------------------------------------------------------------*/
 
-void setup ()
+#define INPUT_SIZE 10 // 40
+
+/*---------------------------------------------------------------------------*/
+// Private constants: typed, debugger-visible constants (prefer static const)
+/*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+// Private typedefs: type aliases and opaque handles
+/*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+// Private enums
+/*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+// Private structs: concrete data layouts used by this module
+/*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+// Private static variables
+/*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+// Private function prototypes
+/*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+// Public function definitions
+/*---------------------------------------------------------------------------*/
+
+/**
+ * @brief Arduino setup function. Initializes the serial port and the 
+ *        Telnet server.
+ *
+ * @return None.
+ */
+void setup (void)
 {
   Serial.begin (9600);
   while (!Serial);
@@ -32,78 +87,74 @@ void setup ()
   Serial.println ();
   Serial.println (FLASHSTR(telnetID));
 
-  showFreeRam ();
-
   telnetInit ();
-}
+} // end of setup()
 
-/*---------------------------------------------------------------------------*/
 
-void loop ()
+/**
+ * @brief Arduino loop function. Handles input from the serial port and the 
+ *        Telnet server.
+ *
+ * @return None.
+ */
+void loop (void)
 {
   char    buffer[INPUT_SIZE];
   uint8_t count;
 
-  showFreeRam ();
-
   // If we are offline, we will just take local input.
-  if (offlineMode)
+  if (telnetIsOffline () == true)
   {
     Serial.print (F("[Offline]Command: "));
   }
-  else if (telnetConnected)
+  else if (telnetIsConnected () == true)
   {
-    // Else, we are talking remotely. Echo to remote and local.
-    client.print (F("[Telnet]Command: "));
-    Serial.print (F("[Telnet]Command: "));
+    // Else, we are talking remotely. Print to remote and local.
+    telnetPrint (F("[Telnet]Command: "));
+  }
+  else
+  {
+    // Neither mode is active.
   }
 
   // Get input from remote (if connected) or local.
-  count = telnetInput (client, buffer, INPUT_SIZE);
+  count = telnetInput (buffer, sizeof(buffer));
+
   if (255 == count) // 255=connection lost
   {
     Serial.println (F("[Connection Lost]"));
   }
-  else // count is how many bytes of data we read in to buffer.
+  else if (count > 0U) // count is how many bytes of data we read in to buffer.
   {
     Serial.print (count);
     Serial.println (F(" bytes received from client."));
-  }
 
-  // If first three characters are "BYE"...
-  if (strcmp_P (buffer, PSTR("BYE"))==0)
-  {
-    // If we are offline currently...
-    if (offlineMode)
+    if (strcmp_P (buffer, PSTR("BYE")) == 0)
     {
-      // ...leave offline mode.
-      Serial.println (F("[Online Mode]"));
-      offlineMode = false;
-    }
-    
-    // And, if we are connected, disconnect.
-    if (true == telnetConnected)
-    {
-      telnetDisconnect();
-    }
+      // If we are offline currently...
+      if (telnetIsOffline () == true)
+      {
+        // Discard any trailing line-ending bytes from the BYE command.
+        while (Serial.available () > 0)
+        {
+          (void)Serial.read ();
+        }
+
+        // ...leave offline mode.
+        telnetSetOffline (false);
+      }
+      
+      // And, if we are connected, disconnect.
+      if (telnetIsConnected () == true)
+      {
+        telnetDisconnect ();
+      }
+    } // end of "BYE" check
   }
-}
+} // end of loop()
 
 /*---------------------------------------------------------------------------*/
-
-static unsigned int freeRam (void)
-{
-  extern int __heap_start, *__brkval; 
-  int v; 
-  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
-}
-
-static void showFreeRam (void)
-{
-  Serial.print (F("Free RAM: "));
-  Serial.println (freeRam());
-}
-
+// Private function definitions
 /*---------------------------------------------------------------------------*/
-// End of TelnetServerDemo
 
+/*** end of file ***/

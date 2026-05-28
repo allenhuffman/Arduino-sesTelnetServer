@@ -26,7 +26,7 @@
 // External module headers
 /*---------------------------------------------------------------------------*/
 
-#include "sesNetwork.h"
+#include <Ethernet.h> // for EthernetClient 
 
 /*---------------------------------------------------------------------------*/
 // Public macros: all #define items, constants and function-like macros
@@ -133,25 +133,18 @@
 extern const char       telnetID[];   // FLASHMEM?  
 extern const char       telnetAYT[];  // FLASHMEM?
 
+extern boolean          telnetConnected;
+extern boolean          offlineMode;
+
+extern EthernetClient   client;
+
 /*---------------------------------------------------------------------------*/
 // Public function prototypes
 /*---------------------------------------------------------------------------*/
 
 void    telnetInit(void);
+uint8_t telnetInput(EthernetClient client, char *cmdLine, uint8_t len);
 void    telnetDisconnect(void);
-
-uint8_t telnetInput(char *buffer, uint8_t bufferSize);
-
-void    telnetPrint(const char *str);
-void    telnetPrint(const __FlashStringHelper *str);
-
-void    telnetPrintln(const char *str);
-void    telnetPrintln(const __FlashStringHelper *str);
-
-bool    telnetIsConnected(void);
-
-bool    telnetIsOffline(void);
-void    telnetSetOffline(bool telnetIsOffline);
 
 #endif /* SESTELNETSERVER_H */
 

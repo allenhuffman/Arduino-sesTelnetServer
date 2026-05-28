@@ -21,14 +21,13 @@
 // System headers
 /*---------------------------------------------------------------------------*/
 
-#include <stdint.h>
-
 /*---------------------------------------------------------------------------*/
 // External module headers
 /*---------------------------------------------------------------------------*/
 
+// For Arduino UNO and similar AVR-based boards:
 // Define this to make all the strings live in Flash instead of RAM.
-#define USE_FLASH
+//#define USE_FLASH
 
 // Then include this to get the FLASHMEM, FLASTSTR, and FLASHPTR defines.
 #include "FlashMem.h"
@@ -39,7 +38,20 @@
 
 // Define this to include printing basic Telnet protocol information. This
 // will include a bunch of Flash strings.
-//#define TELNET_DEBUG // takes about 1176 bytes of Flash + 14 bytes of RAM.
+#define TELNET_DEBUG // takes about 1176 bytes of Flash + 14 bytes of RAM.
+
+// Select which network transport backend to compile against.
+// Default is Ethernet shield behavior for backwards compatibility.
+//#define SES_TRANSPORT_ETHERNET
+#define SES_TRANSPORT_WIFI_S3
+
+#if defined(SES_TRANSPORT_ETHERNET) && defined(SES_TRANSPORT_WIFI_S3)
+  #error "Select only one transport backend."
+#endif
+
+#if !defined(SES_TRANSPORT_ETHERNET) && !defined(SES_TRANSPORT_WIFI_S3)
+  #define SES_TRANSPORT_ETHERNET
+#endif
 
 // Define this to use multiserver support,but only if you have fixed your
 // Ethernet library to allow it. See:
@@ -58,8 +70,8 @@
 
 // Configure telnet server MAC address and IP address. These must be comma-
 // separated lists numbers (hex or deximal) in curly braces.
-#define TELNET_MAC { 0x2A, 0xA0, 0xD8, 0xFC, 0x8B, 0xEF }
-#define TELNET_IP  { 192, 168, 0, 200}
+#define ETHERNET_MAC { 0x2A, 0xA0, 0xD8, 0xFC, 0x8B, 0xEF }
+#define ETHERNET_IP  { 192, 168, 0, 200}
 
 /*---------------------------------------------------------------------------*/
 // Public typedefs: type aliases and opaque handles

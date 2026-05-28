@@ -19,7 +19,6 @@
  * @section history File History
  * - 2013-03-28 0.0 allenh - Initial version.
  * - 2026-05-15     allenh - Reformatting and reorganizating source.
- * - 2026-05-18     allenh - Fix potential buffer overrun from full strings.
  *
  * @todo Make an echoPrint() function that will only print if in half duplex mode.
  */
@@ -51,17 +50,22 @@
 // Private macros: all #define items, constants and function-like macros
 /*---------------------------------------------------------------------------*/
 
-// Define the escape sequence.
-#define ESC_GUARD_TIME_MS 1000 // milliseconds required before/after escape sequence.
-#define ESC_CHARACTER     '+'  // Default escape character.
-#define ESC_TIMES         3    // Number of escape characters ("+++").
+#define INBUF_SIZE      80
+#define OUTBUF_SIZE     80
 
-#define CMDLINE_SIZE      80
-#define BEL               7
-#define BS                8
-#define LF                10
-#define CR                13
-#define CAN               24
+#define LEDBLINK_PIN    13
+#define LEDBLINK_MS     1000
+
+// Define the escape sequence.
+#define ESC_GUARD_TIME  1000 // Seconds required before/after escape sequence.
+#define ESC_CHARACTER   '+'  // Default escape character.
+#define ESC_TIMES       3    // Number of escape characters ("+++").
+
+#define CMDLINE_SIZE    80
+#define CR              13
+#define BEL             7
+#define BS              8
+#define CAN             24
 
 /*---------------------------------------------------------------------------*/
 // Private constants: typed, debugger-visible constants (prefer static const)
@@ -84,11 +88,8 @@
 /*---------------------------------------------------------------------------*/
 
 // For Command Mode.
-static unsigned int escGuardTime = ESC_GUARD_TIME_MS; // Delay before/after esc sequence.
+static unsigned int escGuardTime = ESC_GUARD_TIME; // Delay before/after esc sequence.
 static char         escCharacter = ESC_CHARACTER;  // Escape character
-
-static unsigned long escCheckTime = 0; // Next time to check.
-static uint8_t       escCounter = 0;   // Number of esc chars seen.
 
 /*---------------------------------------------------------------------------*/
 // Private function prototypes
@@ -101,29 +102,62 @@ static uint8_t readCmdLine(char *cmdLine, size_t len);
 /*---------------------------------------------------------------------------*/
 
 /**
- * @brief Check for Hayes AT Command Mode escape sequence.
+ * @brief Process some Hayes modem style "AT" commands.
  *
- * @param[in] ch The character to be checked for escape sequence.
+ * @param[in] ch  The character to be checked for escape sequence.
+ *
+ * @return true if the escape sequence is detected, false otherwise.
  */
-void cmdModeFeed (char ch)
+bool cmdModeCheck (char ch)
 {
-  // If there has been a pause since the last input character...
-  if ((long)(millis () - escCheckTime) >= 0)
-  {
-    // Check to see if it's an escape byte.
-    // if (ch==escSequence[escCounter])
-    if (ch == escCharacter)
-    {
-      // Move to next character to look for.
-      escCounter++;
+  static unsigned long escCheckTime = 0; // Next time to check.
+  static uint8_t       escCounter = 0;   // Number of esc chars seen.
 
-      // Are we out of escape characters to check for?
-      // if (escSequence[escCounter]=='\0')
-      if (ESC_TIMES <= escCounter)
+  // If no character is being passed in, we are just doing a check to see if
+  // we are in a "wait for end guard time" mode.
+  if (0 == ch)
+  {
+    // See if we are waiting to enter command mode.
+    // if (escSequence[escCounter]=='\0')
+    if (ESC_TIMES == escCounter)
+    {
+      // Yep, we have already found all the escape sequence characters.
+      if ((long)(millis()-escCheckTime) >= 0)
       {
-        // Set after delay to signify end of escape sequence.
+        // And the pause has been long enough! We found an escape sequence.
+        escCounter = 0;
         escCheckTime = millis () + escGuardTime;
-      }  
+
+        return true; // Yes, it is time for Command Mode.
+      }
+    }
+  }
+  else // if (0 == ch)
+  {
+    // If there has been a pause since the last input character...
+    if ((long)(millis () - escCheckTime) >= 0)
+    {
+      // Check to see if it's an escape byte.
+      // if (ch==escSequence[escCounter])
+      if (ch == escCharacter)
+      {
+        // Move to next character to look for.
+        escCounter++;
+
+        // Are we out of escape characters to check for?
+        // if (escSequence[escCounter]=='\0')
+        if (ESC_TIMES <= escCounter)
+        {
+          // Set after delay to signify end of escape sequence.
+          escCheckTime = millis () + escGuardTime;
+        }  
+      }
+      else
+      {
+        // Reset. Not an escape character.
+        escCounter = 0;
+        escCheckTime = millis () + escGuardTime;
+      }
     }
     else
     {
@@ -131,46 +165,16 @@ void cmdModeFeed (char ch)
       escCounter = 0;
       escCheckTime = millis () + escGuardTime;
     }
-  }
-  else
-  {
-    // Reset. Not an escape character.
-    escCounter = 0;
-    escCheckTime = millis () + escGuardTime;
-  }
+  } // end of if (ch==0) else
+
+  return false; // No, it is not time for Command Mode.
 }
-
-
-/**
- * @brief Check for Hayes AT Command Mode escape sequence.
- *
- * @return true if the escape sequence is detected, false otherwise.
- */
-bool cmdModeCheck (void)
-{
-  bool status = false;
-
-  // See if we are waiting to enter command mode.
-  // if (escSequence[escCounter]=='\0')
-  if (ESC_TIMES == escCounter)
-  {
-    // Yep, we have already found all the escape sequence characters.
-    if ((long)(millis() - escCheckTime) >= 0)
-    {
-      // And the pause has been long enough! We found an escape sequence.
-      escCounter = 0;
-      escCheckTime = millis () + escGuardTime;
-
-      status = true; // Yes, it is time for Command Mode.
-    }
-  }
-
-  return status;
-}
-
 
 /**
  * @brief Process some Hayes modem style "AT" commands.
+ *
+ * @param[in] num1  The first number to be compared.
+ * @param[in] num2  The second number to be compared.
  *
  * @return void
  */
@@ -181,45 +185,29 @@ void cmdMode (void)
 
   Serial.println ();
   Serial.println ("OK");
-  Serial.println ();
 
   while (1)
   {
     len = readCmdLine (cmdLine, sizeof (cmdLine));
-
     if (len > 0)
     {
-      // TODO: These strings should be moved to flash storage.
-      // Serial.print (">");
-      // Serial.println (cmdLine);
+      Serial.print (">");
+      Serial.println (cmdLine);
 
-      // https://en.wikipedia.org/wiki/Hayes_AT_command_set
-
-      if (strcmp (cmdLine, "?") == 0) // Help
-      {
-        Serial.println ("ATO (return online), ATD, AT.");
-      }
-      else if (strcmp (cmdLine, "ATO") == 0) // Return Online
+      // TODO: This should be moved into flash storage.
+      if (strncmp (cmdLine, "ATO", 3) == 0)
       {
         break;
       }
-      else if (strncmp (cmdLine, "ATD", 4) == 0) // Dial
+      else if (strncmp (cmdLine, "ATDI", 3) == 0)
       {
-        Serial.println ("Dialing?");
-      }
-      else if (strcmp (cmdLine, "AT") == 0) // Attention
-      {
-        Serial.println ();
-        Serial.println ("OK");
-        Serial.println ();
+        Serial.println ("Telnet...");
       }
     }
   } // end of while (1)
 }
 
-/*---------------------------------------------------------------------------*/
-// Private function definitions
-/*---------------------------------------------------------------------------*/
+/* Private function definitions */
 
 /**
  * @brief Process some Hayes modem style "AT" commands.
@@ -231,68 +219,60 @@ void cmdMode (void)
  */
 static uint8_t readCmdLine (char *cmdLine, size_t len)
 {
+  char    ch;
   uint8_t cmdLen = 0;
-  bool    done = false;
+  bool    done;
 
-  if ((NULL != cmdLine) && (0U != len))
+  done = false;
+  while (!done)
   {
-    cmdLine[0] = '\0';
+    //ledBlink();
+    if (Serial.available () > 0)
+    {  
+      ch = Serial.read ();
 
-    while (!done)
-    {
-      //ledBlink();
-      if (Serial.available () > 0)
+      switch(ch)
       {
-        char ch = Serial.read ();
+        case CR:
+          Serial.println ();
+          cmdLine[cmdLen] = '\0';
+          done = true;
+        break;
 
-        switch(ch)
-        {
-          case LF:
-             // Ignore line feed characters.
-          break;
+        case CAN:
+          Serial.println ("[CAN]");
+          cmdLen = 0;
+        break;
 
-          case CR:
-            Serial.println ();
-            cmdLine[cmdLen] = '\0';
-            done = true;
-          break;
+        case BS:
+          if (cmdLen > 0)
+          {
+            Serial.write (BS);
+            Serial.print (" ");
+            Serial.write (BS);
+            cmdLen--;
+          }
+        break;
 
-          case CAN:
-            Serial.println ("[CAN]");
-            cmdLen = 0;
-          break;
-
-          case BS:
-            if (cmdLen > 0)
+        default:
+          // If there is room, store any printable characters in the cmdline.
+          if (cmdLen < len)
+          {
+            if ((ch > 31) && (ch < 127)) // isprint(ch) does not work.
             {
-              Serial.write (BS);
-              Serial.print (" ");
-              Serial.write (BS);
-              cmdLen--;
+              Serial.print (ch);
+              cmdLine[cmdLen] = toupper (ch);
+              cmdLen++;
             }
-          break;
-
-          default:
-            // If there is room, store any printable characters in the cmdline.
-            if (cmdLen < (len - 1U))
-            {
-              // Space through ~ character.
-              if ((ch >= 32) && (ch <= 126)) // isprint(ch) does not work.
-              {
-                Serial.print (ch);
-                cmdLine[cmdLen] = toupper (ch);
-                cmdLen++;
-              }
-            }
-            else
-            {
-              Serial.write (BEL); // Overflow. Ring 'dat bell.
-            }
-          break;
-        } // end of switch(ch)
-      } // end of if (Serial.available()>0)
-    } // end of while(!done)
-  }
+          }
+          else
+          {
+            Serial.write (BEL); // Overflow. Ring 'dat bell.
+          }
+        break;
+      } // end of switch(ch)           
+    } // end of if (Serial.available()>0)
+  } // end of while(!done)
 
   return cmdLen;
 }

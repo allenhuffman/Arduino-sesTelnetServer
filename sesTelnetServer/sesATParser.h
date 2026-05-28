@@ -57,7 +57,8 @@
 // Public function prototypes
 /*---------------------------------------------------------------------------*/
 
-bool    cmdModeCheck(char ch);
+void    cmdModeFeed(char ch);
+bool    cmdModeCheck(void);
 
 void    cmdMode(void);
 

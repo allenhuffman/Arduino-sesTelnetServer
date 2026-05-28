@@ -31,6 +31,9 @@
 // External module headers
 /*---------------------------------------------------------------------------*/
 
+#include <avr/pgmspace.h>
+#include <Ethernet.h>
+#include <SPI.h>
 #include "sesATParser.h"
 
 /*---------------------------------------------------------------------------*/
@@ -254,7 +257,7 @@ void telnetPrintOpt (uint8_t opt)
   Serial.print (F("["));
   for (unsigned int i=0; i<(sizeof(telnetOpt)/sizeof(*telnetOpt)); i++)
   {
-    if (FLASH_READ_BYTE(&telnetOpt[i].code) == opt)
+    if (pgm_read_byte(&telnetOpt[i].code) == opt)
     {
       Serial.print (FLASHPTR(telnetOpt[i].name));
       found = true;

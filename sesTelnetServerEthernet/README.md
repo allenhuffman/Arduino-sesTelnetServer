@@ -5,10 +5,7 @@ Arduino telnet server.
 
 ===============================================================================
 
-This code now has a transport abstraction layer and can be built with either
-Ethernet or WiFi (UNO R4 WiFi / WiFiS3 API) using the same Telnet core.
-
-The default configuration targets the standard Arduino ethernet libraries:
+This code is designed to work with the standard Arduino ethernet libraries:
 
 http://arduino.cc/en/Reference/Ethernet
 
@@ -29,7 +26,6 @@ FILES
 
 * README.md - this file
 * sesATParser.cpp - Hayes AT command parser, "+++" to enter command mode
-  (uses cmdModeFeed()/cmdModeCheck() split escape detection)
 * sesTelnetServer.cpp - the actual Telnet server code
 * sesTelnetServerConfig.h - IP/Mac address and some debug on/off build settings
 * sesTelnetServer.ino - end-user demo program on how to use the server
@@ -42,23 +38,6 @@ Edit the sesTelnetServerConfig.h as appropriate:
 ```
 // Define this to make all the strings live in Flash instead of RAM.
 #define USE_FLASH
-```
-
-```
-// Select which network transport backend to compile against.
-//#define SES_TRANSPORT_ETHERNET
-#define SES_TRANSPORT_WIFI_S3
-```
-
-* Exactly one backend should be enabled.
-* If both are commented out, Ethernet is selected by default.
-* Ethernet mode uses ETHERNET_MAC and ETHERNET_IP.
-* WiFi mode uses SECRET_SSID and SECRET_PASS from arduino_secrets.h.
-
-```
-// arduino_secrets.h
-#define SECRET_SSID "your-wifi-ssid"
-#define SECRET_PASS "your-wifi-password"
 ```
 
 * If defined, the sesTelnetServer will be compiled to put all strings in flash
@@ -96,8 +75,8 @@ Edit the sesTelnetServerConfig.h as appropriate:
 
 ```  
 // Configure telnet server MAC address and IP address.
-#define ETHERNET_MAC { 0x2A, 0xA0, 0xD8, 0xFC, 0x8B, 0xEF }
-#define ETHERNET_IP  { 192, 168, 0, 200 }
+byte mac[] FLASHMEM = { 0x2A, 0xA0, 0xD8, 0xFC, 0x8B, 0xEF };
+byte ip[] FLASHMEM  = { 192, 168, 0, 200};
 ```
 
 * Server MAC address and IP address. Standard Arduino ethernet library stuff.
@@ -142,9 +121,6 @@ RUNNING
  to make use of this, but eventually the sesATParser code will be part
  of a larger project to use the Arduino as an ethernet gateway with
  serial/RS232 devices.
-
- In command mode line input, CR is treated as end-of-line and LF is ignored.
- This avoids CRLF tail bytes from being interpreted as a second empty command.
   
  For a production environment, there's probably little use for this, other
  than having a way to enter admin mode or something if that was part of
